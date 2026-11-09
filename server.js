@@ -140,7 +140,14 @@ tg.on('alerts', () => {
   if (!l.length) return '✅ Không có cảnh báo nào đang mở.';
   return '<b>Cảnh báo đang mở</b>\n' + l.map(a => `${ICON[a.level]} ${esc(a.title)} (từ ${alerts.time(a.since)})`).join('\n');
 });
-tg.on('help', () => '<b>Lệnh</b>\n/status — tình trạng VPS\n/containers — danh sách container\n/security — tình hình bảo mật\n/alerts — cảnh báo đang mở');
+tg.on('snooze', (args) => {
+  const m = Number(args[0]) || 60;
+  alerts.updateSettings({ snoozeMinutes: m });
+  saveAll();
+  return `🔕 Đã tạm tắt mọi cảnh báo Telegram trong ${m} phút (đến ${alerts.time(alerts.state.snoozeUntil)}).\nGõ /unsnooze để bật lại.`;
+});
+tg.on('unsnooze', () => { alerts.updateSettings({ snoozeMinutes: 0 }); saveAll(); return '🔔 Đã bật lại cảnh báo Telegram.'; });
+tg.on('help', () => '<b>Lệnh</b>\n/status — tình trạng VPS\n/containers — danh sách container\n/security — tình hình bảo mật\n/alerts — cảnh báo đang mở\n/snooze 60 — tạm tắt cảnh báo 60 phút\n/unsnooze — bật lại cảnh báo\n\nBật/tắt từng loại cảnh báo: nút "Cài đặt cảnh báo" trên dashboard.');
 
 // ---------- HTTP ----------
 const PUBLIC = path.join(__dirname, 'public');
@@ -185,6 +192,7 @@ function snapshot() {
     status: alerts.overall(),
     alerts: alerts.list(),
     recent: alerts.recent(),
+    alertSettings: { muted: alerts.muted, snoozeUntil: alerts.settings().snoozeUntil },
     system: s && {
       t: s.t, cpu: s.cpu, load: s.load, uptime: s.uptime, mem: s.mem, net: s.net, io: s.io, fs: s.fs,
       tcp: s.tcp, procs: { count: s.procs.count, zombies: s.procs.zombies, byCpu: s.procs.byCpu, byMem: s.procs.byMem },
@@ -213,6 +221,23 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/snapshot') return sendJson(res, snapshot());
   if (url.pathname === '/api/history') return sendJson(res, { range: url.searchParams.get('range') || '1h', points: history(url.searchParams.get('range')) });
   if (url.pathname === '/api/events') return sendJson(res, alerts.events.slice(0, 200));
+  if (url.pathname === '/api/settings') {
+    if (req.method === 'GET') return sendJson(res, alerts.settings());
+    if (req.method === 'POST') {
+      // Chỉ nhận JSON (form HTML từ trang khác không gửi được kiểu này -> chống CSRF)
+      if (!String(req.headers['content-type'] || '').startsWith('application/json')) { res.writeHead(415); res.end(); return; }
+      let body = '';
+      req.on('data', c => { body += c; if (body.length > 10000) req.destroy(); });
+      req.on('end', () => {
+        let data;
+        try { data = JSON.parse(body || '{}'); } catch { res.writeHead(400); res.end('JSON lỗi'); return; }
+        const out = alerts.updateSettings(data);
+        saveAll();
+        sendJson(res, out);
+      });
+      return;
+    }
+  }
   if (url.pathname === '/api/test-alert' && req.method === 'POST') {
     tg.send(alerts.format('info', 'Tin nhắn thử từ dashboard', 'Nếu bạn nhận được tin này, cảnh báo Telegram đang hoạt động.'));
     return sendJson(res, { ok: tg.enabled });

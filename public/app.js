@@ -295,6 +295,7 @@
     b.textContent = '';
     if (!d.telegram.enabled) b.append(h('div', { class: 'banner' }, 'Chưa cấu hình Telegram (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID) — cảnh báo chỉ hiện trên dashboard.'));
     else if (d.telegram.dryRun) b.append(h('div', { class: 'banner' }, 'Telegram đang ở chế độ thử (TELEGRAM_DRY_RUN=1) — tin nhắn chỉ ghi ra log.'));
+    if (d.alertSettings && d.alertSettings.snoozeUntil) b.append(h('div', { class: 'banner' }, `🔕 Đang tạm tắt mọi cảnh báo Telegram đến ${dateTimeFmt.format(d.alertSettings.snoozeUntil)}.`));
     if (d.telegram.lastError) b.append(h('div', { class: 'banner' }, `Lỗi gửi Telegram: ${d.telegram.lastError}`));
     if (!d.docker.available) b.append(h('div', { class: 'banner' }, `Không đọc được Docker: ${d.docker.error}`));
     if (d.security.source === 'none') b.append(h('div', { class: 'banner' }, 'Không tìm thấy log SSH (/var/log/auth.log hoặc /var/log/secure) — chưa phát hiện được brute-force SSH. Cài rsyslog để bật.'));
@@ -335,9 +336,10 @@
   function renderAlerts(d) {
     const el = $('alerts');
     el.textContent = '';
+    const muted = (d.alertSettings && d.alertSettings.muted) || {};
     const item = (a, when) => h('li', { class: `lv-${a.level}` },
       pill(a.level),
-      h('div', { class: 'body' }, h('div', { class: 't' }, a.title), a.detail ? h('div', { class: 'd' }, a.detail) : null, h('div', { class: 'when' }, when)));
+      h('div', { class: 'body' }, h('div', { class: 't' }, a.title, a.sent === false || muted[a.type] ? h('span', { class: 'muted-tag' }, '🔕 không gửi Telegram') : null), a.detail ? h('div', { class: 'd' }, a.detail) : null, h('div', { class: 'when' }, when)));
     if (!d.alerts.length) el.append(h('div', { class: 'hero-ok' }, pill('ok', 'Không có cảnh báo'), 'Các chỉ số tài nguyên đang trong ngưỡng an toàn.'));
     else el.append(h('ul', { class: 'alert-list' }, d.alerts.map(a => item(a, `từ ${ago(a.since)}`))));
     if (d.recent.length) {
@@ -441,7 +443,7 @@
       const el = $('events');
       el.textContent = '';
       if (!ev.length) { el.append(h('li', { class: 'empty' }, 'Chưa có sự kiện nào')); return; }
-      el.append(...ev.slice(0, 100).map(e => h('li', {}, pill(e.level), h('b', {}, e.title), h('span', { class: 'when' }, `${dateTimeFmt.format(e.t)} · ${ago(e.t)}`), e.detail ? h('span', { class: 'd' }, e.detail) : null)));
+      el.append(...ev.slice(0, 100).map(e => h('li', {}, pill(e.level), h('b', {}, e.title, e.sent === false ? h('span', { class: 'muted-tag' }, '🔕 không gửi Telegram') : null), h('span', { class: 'when' }, `${dateTimeFmt.format(e.t)} · ${ago(e.t)}`), e.detail ? h('span', { class: 'd' }, e.detail) : null)));
     } catch { /* bỏ qua */ }
   }
 
@@ -466,6 +468,46 @@
     } catch { /* giữ dữ liệu cũ */ }
     renderCharts();
   }
+
+  // ---------- cài đặt cảnh báo ----------
+  let settings = null;
+  function renderSettings() {
+    if (!settings) return;
+    const st = $('snoozeState');
+    st.textContent = settings.snoozeUntil ? `— đang tắt đến ${dateTimeFmt.format(settings.snoozeUntil)}` : '— đang bật';
+    document.querySelectorAll('#snoozeBtns button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === '0' ? !settings.snoozeUntil : false)));
+    const groups = {};
+    for (const t of settings.types) (groups[t.group] = groups[t.group] || []).push(t);
+    const el = $('typeGroups');
+    el.textContent = '';
+    for (const [g, types] of Object.entries(groups)) {
+      el.append(h('div', {}, h('h3', {}, g), types.map(t => {
+        const on = !settings.muted[t.id];
+        const input = h('input', { type: 'checkbox', role: 'switch', 'aria-label': t.label, checked: on });
+        input.addEventListener('change', () => saveSettings({ muted: { [t.id]: !input.checked } }));
+        return h('label', { class: 'toggle' }, h('span', {}, t.label),
+          h('span', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h('span', { class: 'state' }, on ? 'Bật' : 'Tắt'), h('span', { class: 'switch' }, input, h('span', { class: 'track' }))));
+      })));
+    }
+  }
+  async function loadSettings() {
+    try { settings = await api('api/settings'); renderSettings(); } catch { /* bỏ qua */ }
+  }
+  async function saveSettings(patch) {
+    try {
+      settings = await api('api/settings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) });
+      renderSettings();
+      loadSnapshot();
+    } catch (e) { alert(`Không lưu được cài đặt: ${e.message}`); loadSettings(); }
+  }
+  const toggleSettings = open => {
+    $('settingsCard').hidden = !open;
+    $('settingsBtn').setAttribute('aria-expanded', String(open));
+    if (open) { loadSettings(); $('settingsCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  };
+  $('settingsBtn').addEventListener('click', () => toggleSettings($('settingsCard').hidden));
+  $('settingsClose').addEventListener('click', () => toggleSettings(false));
+  document.querySelectorAll('#snoozeBtns button').forEach(b => b.addEventListener('click', () => saveSettings({ snoozeMinutes: Number(b.dataset.m) })));
 
   // ---------- sự kiện UI ----------
   document.querySelectorAll('#range button').forEach(b => {

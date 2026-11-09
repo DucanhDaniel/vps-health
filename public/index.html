@@ -18,12 +18,25 @@
     </div>
     <div class="actions">
       <span class="updated" id="updated"></span>
+      <button id="settingsBtn" aria-expanded="false" aria-controls="settingsCard">🔔 Cài đặt cảnh báo</button>
       <button id="testAlert" title="Gửi tin nhắn thử qua Telegram">Thử Telegram</button>
       <button id="themeBtn" aria-label="Đổi giao diện sáng/tối">◐</button>
     </div>
   </header>
 
   <div id="banners"></div>
+
+  <section class="card settings" id="settingsCard" hidden style="margin-bottom:12px">
+    <div class="card-head"><h2>Cài đặt cảnh báo Telegram</h2><button id="settingsClose" aria-label="Đóng">✕</button></div>
+    <div class="desc">Tắt một loại thì sẽ không gửi Telegram nữa. Dashboard vẫn ghi lại sự kiện, kèm dấu 🔕. Thay đổi được lưu ngay.</div>
+    <div class="snooze">
+      <div><b>Tạm tắt tất cả</b> <span class="sub" id="snoozeState"></span></div>
+      <div class="seg" id="snoozeBtns">
+        <button data-m="30">30 phút</button><button data-m="60">1 giờ</button><button data-m="240">4 giờ</button><button data-m="0">Bật lại</button>
+      </div>
+    </div>
+    <div class="type-groups" id="typeGroups"></div>
+  </section>
 
   <div class="filters" role="group" aria-label="Khoảng thời gian">
     <span class="lbl">Khoảng thời gian</span>

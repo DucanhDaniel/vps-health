@@ -37,9 +37,13 @@ Cảnh báo Telegram hoạt động như nhau ở cả ba chế độ.
 Mỗi cảnh báo được gửi khi tình trạng xấu đi và gửi thêm tin "✅ đã trở lại bình thường" khi hồi phục.
 Nếu sau 2 giờ vẫn chưa xử lý, hệ thống nhắc lại. Mọi ngưỡng đều chỉnh được trong `.env` (xem `.env.example`).
 
+### Bật/tắt từng loại cảnh báo
+
+Trên dashboard, bấm **🔔 Cài đặt cảnh báo** để bật hoặc tắt việc gửi Telegram cho từng loại (container mới, đăng nhập SSH, cổng mới...). Bạn cũng có thể **tạm tắt tất cả** trong 30 phút, 1 giờ hoặc 4 giờ khi bảo trì. Sự kiện của loại đã tắt vẫn được ghi trên dashboard, kèm dấu 🔕.
+
 ### Lệnh gõ cho bot
 
-`/status` xem tình trạng · `/containers` xem danh sách container · `/security` xem tình hình bảo mật · `/alerts` xem cảnh báo đang mở
+`/status` xem tình trạng · `/containers` xem danh sách container · `/security` xem tình hình bảo mật · `/alerts` xem cảnh báo đang mở · `/snooze 60` tạm tắt cảnh báo 60 phút · `/unsnooze` bật lại
 
 ## Vận hành
 
