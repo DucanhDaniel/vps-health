@@ -6,7 +6,7 @@ Viết bằng Node.js thuần, không dùng thư viện ngoài, đọc số li�
 ## Cài đặt (1 lệnh)
 
 ```bash
-git clone <repo-url> vps-health && cd vps-health && sudo bash install.sh
+git clone https://github.com/DucanhDaniel/vps-health && cd vps-health && sudo bash install.sh
 ```
 
 Script sẽ hỏi Telegram bot token, chat ID, mật khẩu dashboard và **ai được truy cập dashboard**, sau đó:
