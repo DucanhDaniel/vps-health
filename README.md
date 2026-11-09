@@ -57,3 +57,12 @@ Sau khi sửa `.env`: chạy `docker compose up -d` (Docker) hoặc `systemctl r
 - Dashboard bắt buộc đăng nhập. Một IP nhập sai 20 lần trong 15 phút sẽ bị chặn tạm thời.
 - Container chỉ mount `/` của host ở chế độ **chỉ đọc**. Docker socket chỉ dùng cho các lệnh đọc.
 - Mặc định dashboard **không mở ra Internet**. Nên dùng Tailscale. Kết nối Tailscale đã được mã hóa đầu-cuối, nên dùng HTTP bên trong vẫn an toàn.
+
+## VPS không gửi được Telegram ("fetch failed")
+
+Một số nhà mạng tại Việt Nam chặn Telegram. Để kiểm tra, chạy trên VPS: `curl -m 10 -s -o /dev/null -w "%{http_code}\n" https://api.telegram.org`. Nếu kết quả là `000` hoặc lệnh bị treo, nghĩa là đường tới Telegram đang bị chặn.
+
+Cách khắc phục là gửi qua **Cloudflare Worker** trung gian (miễn phí):
+1. Vào dash.cloudflare.com, chọn **Workers & Pages → Create → Hello World**, đặt tên ví dụ `tg-proxy`, bấm **Deploy**.
+2. Bấm **Edit code**, dán toàn bộ nội dung file `tools/telegram-proxy-worker.js`, rồi bấm **Deploy**.
+3. Thêm vào `.env` dòng `TELEGRAM_API_BASE=https://tg-proxy.<tai-khoan>.workers.dev`, sau đó chạy `sudo docker compose up -d`.
