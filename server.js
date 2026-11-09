@@ -3,6 +3,12 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const dns = require('dns');
+const net = require('net');
+
+// Nhiều VPS có IPv6 nhưng không định tuyến được ra ngoài -> ưu tiên IPv4, tự thử địa chỉ khác nếu lỗi
+dns.setDefaultResultOrder(process.env.DNS_ORDER || 'ipv4first');
+if (net.setDefaultAutoSelectFamily) net.setDefaultAutoSelectFamily(true);
 
 const cfg = require('./lib/config');
 const { SystemCollector } = require('./lib/system');
