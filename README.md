@@ -9,12 +9,20 @@ Viết bằng Node.js thuần, không dùng thư viện ngoài, đọc số li�
 git clone <repo-url> vps-health && cd vps-health && sudo bash install.sh
 ```
 
-Script sẽ hỏi Telegram bot token, chat ID và mật khẩu dashboard, sau đó:
+Script sẽ hỏi Telegram bot token, chat ID, mật khẩu dashboard và **ai được truy cập dashboard**, sau đó:
 - chạy bằng **Docker Compose** nếu máy có Docker, nếu không thì chạy bằng **systemd** (cần Node.js 18 trở lên);
 - cài `rsyslog` nếu máy chưa có `/var/log/auth.log`, để phát hiện được brute-force SSH;
-- mở cổng 3100 trên `ufw` nếu firewall đang bật.
+- nếu `ufw` đang bật: chỉ cho phép cổng 3100 qua Tailscale (hoặc mở ra Internet nếu bạn chọn cách 3).
 
-Mở `http://IP-VPS:3100` rồi đăng nhập bằng user `admin` và mật khẩu đã đặt.
+### Ai được truy cập dashboard (`BIND_HOST` trong `.env`)
+
+| Lựa chọn | `BIND_HOST` | Truy cập |
+|---|---|---|
+| **Tailscale** (khuyên dùng) | IP Tailscale của VPS (`100.x.y.z`, xem bằng `tailscale ip -4`) | Bật Tailscale trên điện thoại hoặc máy tính rồi mở `http://100.x.y.z:3100` |
+| Chỉ trên VPS | `127.0.0.1` (mặc định) | `ssh -L 3100:127.0.0.1:3100 user@VPS` rồi mở `http://localhost:3100` |
+| Internet | `0.0.0.0` | Không khuyên dùng vì dashboard chạy HTTP, không mã hóa |
+
+Cảnh báo Telegram hoạt động như nhau ở cả ba chế độ.
 
 ## Các cảnh báo được gửi qua Telegram
 
@@ -48,4 +56,4 @@ Sau khi sửa `.env`: chạy `docker compose up -d` (Docker) hoặc `systemctl r
 
 - Dashboard bắt buộc đăng nhập. Một IP nhập sai 20 lần trong 15 phút sẽ bị chặn tạm thời.
 - Container chỉ mount `/` của host ở chế độ **chỉ đọc**. Docker socket chỉ dùng cho các lệnh đọc.
-- Dashboard dùng HTTP thường. Nên đặt sau reverse proxy có HTTPS, hoặc giới hạn IP được truy cập: `ufw allow from <IP-của-bạn> to any port 3100`.
+- Mặc định dashboard **không mở ra Internet**. Nên dùng Tailscale. Kết nối Tailscale đã được mã hóa đầu-cuối, nên dùng HTTP bên trong vẫn an toàn.

@@ -229,14 +229,25 @@ dockerTick();
 setInterval(dockerTick, Math.max(10, cfg.intervalSec * 2) * 1000);
 setInterval(saveAll, 60000);
 
-server.listen(cfg.port, cfg.bindHost, () => {
-  console.log(`[vps-health] Dashboard: http://${cfg.bindHost}:${cfg.port}  (user: ${cfg.dashboard.user})`);
-  console.log(`[vps-health] Telegram: ${tg.enabled ? (cfg.telegram.dryRun ? 'dry-run' : 'bật') : 'TẮT (thiếu TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)'} · Log SSH: ${auth.source} · Docker: ${docker.exists() ? cfg.dockerSocket : 'không thấy'}`);
+// Nếu bind vào IP Tailscale mà Tailscale chưa lên (lúc khởi động máy) -> thử lại, cảnh báo vẫn chạy bình thường
+let listenTries = 0;
+server.on('error', e => {
+  if (e.code === 'EADDRNOTAVAIL' || e.code === 'EADDRINUSE') {
+    if (listenTries++ % 12 === 0) console.warn(`[http] Chưa bind được ${cfg.bindHost}:${cfg.port} (${e.code}) — thử lại mỗi 5 giây...`);
+    setTimeout(() => server.listen(cfg.port, cfg.bindHost), 5000);
+  } else {
+    console.error('[http]', e);
+  }
 });
+server.on('listening', () => {
+  console.log(`[vps-health] Dashboard: http://${cfg.bindHost}:${cfg.port}  (user: ${cfg.dashboard.user})`);
+});
+server.listen(cfg.port, cfg.bindHost);
+console.log(`[vps-health] Telegram: ${tg.enabled ? (cfg.telegram.dryRun ? 'dry-run' : 'bật') : 'TẮT (thiếu TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)'} · Log SSH: ${auth.source} · Docker: ${docker.exists() ? cfg.dockerSocket : 'không thấy'}`);
 
 setTimeout(() => {
   if (cfg.telegram.startupMessage) {
-    tg.send(`🟢 <b>VPS Health Monitor đã khởi động</b> trên <code>${esc(cfg.serverName)}</code>\nDashboard: cổng ${cfg.port}\nGõ /status để xem tình trạng.\n\n` +
+    tg.send(`🟢 <b>VPS Health Monitor đã khởi động</b> trên <code>${esc(cfg.serverName)}</code>\nDashboard: http://${esc(cfg.bindHost)}:${cfg.port}\nGõ /status để xem tình trạng.\n\n` +
       `Log SSH: ${esc(auth.source)}\nDocker: ${docker.available ? `${containers.length} container` : esc(docker.error || 'không có')}`);
   }
   tg.pollCommands();
