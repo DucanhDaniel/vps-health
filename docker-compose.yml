@@ -1,0 +1,16 @@
+services:
+  vps-health:
+    build: .
+    container_name: vps-health
+    restart: unless-stopped
+    # Dùng chung mạng + PID với máy chủ để đọc đúng số liệu của VPS (không phải của container)
+    network_mode: host
+    pid: host
+    env_file: .env
+    environment:
+      HOST_ROOT: /host
+      DATA_DIR: /app/data
+    volumes:
+      - /:/host:ro,rslave                               # đọc ổ đĩa, /etc/os-release, /var/log/auth.log (chỉ đọc)
+      - /var/run/docker.sock:/var/run/docker.sock:ro   # theo dõi container
+      - ./data:/app/data                               # lưu lịch sử 24h + trạng thái

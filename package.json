@@ -1,0 +1,9 @@
+{
+  "name": "vps-health",
+  "version": "1.0.0",
+  "description": "Giám sát sức khỏe VPS: dashboard cổng 3100 + cảnh báo Telegram",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18.15" },
+  "license": "MIT"
+}

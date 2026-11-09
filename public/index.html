@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>VPS Health</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='%230ca30c'/></svg>">
+<link rel="stylesheet" href="style.css">
+<script>document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark';</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title">
+      <h1><span id="srvName">VPS</span> <span id="overall" class="pill lv-muted"><span class="dot"></span><span>Đang tải…</span></span></h1>
+      <div class="sub" id="srvInfo"></div>
+    </div>
+    <div class="actions">
+      <span class="updated" id="updated"></span>
+      <button id="testAlert" title="Gửi tin nhắn thử qua Telegram">Thử Telegram</button>
+      <button id="themeBtn" aria-label="Đổi giao diện sáng/tối">◐</button>
+    </div>
+  </header>
+
+  <div id="banners"></div>
+
+  <div class="filters" role="group" aria-label="Khoảng thời gian">
+    <span class="lbl">Khoảng thời gian</span>
+    <div class="seg" id="range">
+      <button data-r="15m" aria-pressed="false">15 phút</button>
+      <button data-r="1h" aria-pressed="true">1 giờ</button>
+      <button data-r="24h" aria-pressed="false">24 giờ</button>
+    </div>
+  </div>
+
+  <section class="grid tiles" id="tiles" aria-label="Chỉ số chính"></section>
+
+  <section class="card" id="alertsCard" style="margin-bottom:12px">
+    <div class="card-head"><h2>Cảnh báo đang mở</h2></div>
+    <div id="alerts"></div>
+  </section>
+
+  <section class="grid charts">
+    <div class="card"><h2>CPU &amp; RAM</h2><div class="desc">% sử dụng</div><div id="chCpuMem"></div></div>
+    <div class="card"><h2>Mạng</h2><div class="desc">Băng thông mỗi giây (không tính interface Docker nội bộ)</div><div id="chNet"></div></div>
+    <div class="card"><h2>Ổ đĩa I/O</h2><div class="desc">Đọc / ghi mỗi giây</div><div id="chIo"></div></div>
+    <div class="card"><h2>Load average (1 phút)</h2><div class="desc" id="loadDesc">Đường kẻ mờ = số nhân CPU</div><div id="chLoad"></div></div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <div class="card-head"><h2>Container Docker</h2><span class="updated" id="dockerSum"></span></div>
+      <div class="tablewrap" id="containers"></div>
+    </div>
+    <div class="card">
+      <h2>Ổ đĩa</h2><div class="desc">Dung lượng và inode từng phân vùng</div>
+      <div class="tablewrap" id="disks"></div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-bottom:12px">
+    <div class="card-head"><h2>Bảo mật</h2><span class="updated" id="secSource"></span></div>
+    <div class="kv" id="secKv"></div>
+    <div class="grid two" style="margin-bottom:0">
+      <div>
+        <h2 style="font-size:13.5px">SSH đăng nhập sai theo giờ (24h)</h2>
+        <div id="chSsh"></div>
+      </div>
+      <div>
+        <h2 style="font-size:13.5px">IP thử đăng nhập SSH nhiều nhất (24h)</h2>
+        <div class="desc">Chặn bằng: <code>ufw deny from &lt;IP&gt;</code></div>
+        <div id="topIps"></div>
+      </div>
+    </div>
+    <div class="grid two" style="margin:12px 0 0">
+      <div>
+        <h2 style="font-size:13.5px">Đăng nhập SSH thành công gần đây</h2>
+        <div class="tablewrap" id="logins"></div>
+      </div>
+      <div>
+        <h2 style="font-size:13.5px">Cổng đang mở</h2>
+        <div class="tablewrap" id="ports"></div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <h2 style="font-size:13.5px">IP đang giữ nhiều kết nối nhất</h2>
+      <div id="connIps"></div>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card"><h2>Tiến trình tốn CPU</h2><div class="desc">% của 1 nhân (có thể vượt 100%)</div><div class="tablewrap" id="procCpu"></div></div>
+    <div class="card"><h2>Tiến trình tốn RAM</h2><div class="desc">Bộ nhớ thực (RSS)</div><div class="tablewrap" id="procMem"></div></div>
+  </section>
+
+  <section class="card">
+    <h2>Nhật ký sự kiện</h2><div class="desc">Các cảnh báo và sự kiện gần đây (cũng được gửi qua Telegram)</div>
+    <ul class="events" id="events"></ul>
+  </section>
+
+  <div class="foot">VPS Health Monitor · tự cập nhật mỗi 5 giây</div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
